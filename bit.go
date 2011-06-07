@@ -44,27 +44,28 @@ func (irc *IRCConn) Handle(s []string, write chan string) {
 		if len(s) < 6 {
 			return
 		} // no message, ignore silently
-		log.Println("Handling:" + strings.Join(s, ""))
 		if s[3] == ":"+userName && s[4] == "tell" { // leave message
+			from := s[0][1:strings.Index(s[0], "!")]
 			usr := s[5]
+			log.Println("Message for", usr, "from", from)
 			if _, ok := irc.user[usr]; ok { // already seen user
-				irc.user[usr] <- ":" + strings.Join(s[5:len(s)], " ")
+				irc.user[usr] <- from + ": " + strings.Join(s[6:len(s)], " ")
 			} else { // new user
 				irc.user[usr] = make(chan string, maxMessages)
-				irc.user[usr] <- ":" + strings.Join(s[5:len(s)], " ")
+				irc.user[usr] <- from + ": " + strings.Join(s[6:len(s)], " ")
 			}
-			log.Println("Wraiting:" + strings.Join(s[4:len(s)], " "))
+			write <- channel + " :I'll tell " + usr
 		}
 	} else if s[1] == "JOIN" {
 		usr := s[0][1:strings.Index(s[0], "!")]
-		log.Println("Found: " + usr)
+		log.Println("Joined,", usr)
 		if _, ok := irc.user[usr]; ok { // if we have messages
 			for i := 0; i < len(irc.user[usr]); i++ {
-				write <- usr + " " + <-irc.user[usr]
+				write <- channel + " :" + usr + " " + <-irc.user[usr]
 			}
 		}
 	} else if s[0] == "PING" {
-		log.Println("PONG " + strings.Join(s[1:len(s)], " "))
+		log.Println("PING:", s)
 		irc.Write([]byte("PONG " + strings.Join(s[1:len(s)], " ")))
 	} else {
 		log.Println("No idea:", s)
