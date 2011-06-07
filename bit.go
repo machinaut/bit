@@ -63,7 +63,9 @@ func (irc *IRCConn) Handle(s []string, write chan string) {
 				write <- usr + " " + <-irc.user[usr]
 			}
 		}
-	}
+	} else if s[1] == "PING" {
+        write <- "PONG" + strings.Join(s[2:len(s)], " ")
+    }
 }
 // OMG MAIN PROGRAM
 func main() {
